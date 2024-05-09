@@ -1,0 +1,49 @@
+version: "3"
+services:
+  task-management-app:
+    image: task-management-api
+    depends_on:
+      mysqldb:
+        condition: service_healthy
+      auth-server:
+        condition: service_started
+    build: ./task-management-api
+    ports:
+      - 8080:8080
+    environment:
+      MYSQL_HOST: mysqldb
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: task_mgmt_db
+      OAUTH_ISSUER_URI: http://auth-server:9090
+
+  auth-server:
+    hostname: auth-service
+    image: auth-server
+    depends_on:
+       mysqldb:
+         condition: service_healthy
+    build: ./auth-server
+    ports:
+      - 9090:9090
+    environment:
+      MYSQL_HOST: mysqldb
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: auth_db
+      OAUTH_ISSUER_URI: http://auth-server:9090
+
+  mysqldb:
+    container_name: mysqldb
+    image: mysql
+    ports:
+      - 3307:3306
+    environment:
+      MYSQL_DATABASE: task_mgmt_db
+      MYSQL_ROOT_PASSWORD: password
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 20s
+      retries: 10
